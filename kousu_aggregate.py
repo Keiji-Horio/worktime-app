@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(layout="wide")  # 必ず最初に！
+st.set_page_config(layout="wide")  # 必ずimport直後！何も前に書かない
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ import os
 import re
 import datetime
 
-# 日本語フォント自動検出
+# --- フォント自動検出（ここではStreamlitのUI系コマンドは使わない） ---
 font_path_candidates = [
     "C:/Windows/Fonts/meiryo.ttc",
     "C:/Windows/Fonts/YuGothM.ttc",
@@ -28,6 +28,7 @@ plt.rcParams['axes.unicode_minus'] = False
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
 
+# --- StreamlitのUIコマンドはここから ---
 st.title('工数集計・可視化アプリ')
 
 if not prop:
