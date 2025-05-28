@@ -1,6 +1,4 @@
 import streamlit as st
-st.set_page_config(layout="wide")  # 必ずimport直後！
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
@@ -10,7 +8,7 @@ import os
 import re
 import datetime
 
-# --- フォント自動検出 ---
+# フォント自動検出（日本語フォントが確実に存在するものを複数候補に）
 font_path_candidates = [
     "C:/Windows/Fonts/meiryo.ttc",
     "C:/Windows/Fonts/YuGothM.ttc",
@@ -24,14 +22,15 @@ for p in font_path_candidates:
         break
 prop = fm.FontProperties(fname=font_path) if font_path else None
 
-plt.rcParams['axes.unicode_minus'] = False
+# グローバルにmatplotlibの日本語フォントを設定
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
-
-st.title('工数集計・可視化アプリ')
-
-if not prop:
+    plt.rcParams['axes.unicode_minus'] = False
+else:
     st.warning("日本語フォントが見つかりません。グラフ凡例に□が出る可能性があります。")
+
+st.set_page_config(layout="wide")
+st.title('工数集計・可視化アプリ')
 
 staff_to_branch = {
     "a.kani":      "東京",
@@ -204,30 +203,22 @@ if not df_all.empty:
         (df_all["作業内容_分類"].isin(selected_workcontent))
     ]
 
-    if not filtered.empty:
-        st.subheader("フィルタ後データ")
-        st.dataframe(filtered)
+    st.subheader("フィルタ後データ")
+    st.dataframe(filtered)
 
-        # ---- 棒グラフ表示 ----
-        st.subheader("作業内容ごとの工数合計（棒グラフ）")
-        plot_df = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reset_index()
-        plot_df = plot_df[plot_df["工数 [h]"] > 0]  # 0のものは除外
+    # ---- 棒グラフ表示 ----
+    st.subheader("作業内容ごとの工数合計（棒グラフ）")
+    plot_df = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reset_index()
+    plot_df = plot_df[plot_df["工数 [h]"] > 0]  # 0のものは除外
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
 
-        # fontproperties=propはpropがNoneでないときのみ
-        if prop:
-            ax.legend(fontproperties=prop)
-            plt.xticks(rotation=45, ha="right", fontproperties=prop)
-            plt.yticks(fontproperties=prop)
-        else:
-            ax.legend()
-            plt.xticks(rotation=45, ha="right")
-            plt.yticks()
-        plt.tight_layout()
-        st.pyplot(fig)
-    else:
-        st.info("担当者データがありません。")
+    # 凡例をfontproperties付きで
+    ax.legend(fontproperties=prop)
+    plt.xticks(rotation=45, ha="right", fontproperties=prop)
+    plt.yticks(fontproperties=prop)
+    plt.tight_layout()
+    st.pyplot(fig)
 else:
-    st.info("Upload Excel files or upload CSV to start.")
+    st.info("データをアップロードしてください。")
