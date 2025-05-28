@@ -8,10 +8,12 @@ import os
 import re
 import datetime
 
-# フォント自動検出
+# フォント自動検出（日本語フォントが確実に存在するものを複数候補に）
 font_path_candidates = [
     "C:/Windows/Fonts/meiryo.ttc",
     "C:/Windows/Fonts/YuGothM.ttc",
+    "C:/Windows/Fonts/msgothic.ttc",
+    "C:/Windows/Fonts/msmincho.ttc",
 ]
 font_path = None
 for p in font_path_candidates:
@@ -23,6 +25,9 @@ prop = fm.FontProperties(fname=font_path) if font_path else None
 # グローバルにmatplotlibの日本語フォントを設定
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
+    plt.rcParams['axes.unicode_minus'] = False
+else:
+    st.warning("日本語フォントが見つかりません。グラフ凡例に□が出る可能性があります。")
 
 st.set_page_config(layout="wide")
 st.title('工数集計・可視化アプリ')
@@ -198,108 +203,25 @@ if not df_all.empty:
         (df_all["作業内容_分類"].isin(selected_workcontent))
     ]
 
-    st.subheader("フィルター後データ")
+    st.subheader("フィルタ後データ")
     st.dataframe(filtered)
 
-    # --- ダウンロードボタン追加 ---
-    csv = filtered.to_csv(index=False, encoding="utf-8-sig")
-    st.download_button(
-        label="このフィルター後データをCSVでダウンロード",
-        data=csv,
-        file_name="filtered_data.csv",
-        mime='text/csv'
-    )
+    # ---- 棒グラフ表示 ----
+    st.subheader("作業内容ごとの工数合計（棒グラフ）")
+    plot_df = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reset_index()
+    plot_df = plot_df[plot_df["工数 [h]"] > 0]  # 0のものは除外
 
-    # --- 横棒グラフ＆円グラフ 横並び表示 ---
-    st.subheader("作業内容別 工数 [h] グラフ")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
 
-    bar_data = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reindex(work_content_list).fillna(0)
-    pie_data = bar_data[bar_data > 0]
-
-    col1, col2 = st.columns([2, 1])  # 横棒:円グラフ=2:1の割合
-
-    with col1:
-        st.markdown("#### 横棒グラフ")
-        if bar_data.sum() > 0:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            bar_data.plot.barh(ax=ax, color="#4a90e2")
-            if prop:
-                ax.set_xlabel("工数 [h]", fontproperties=prop)
-                ax.set_ylabel("作業内容", fontproperties=prop)
-                for label in ax.get_yticklabels():
-                    label.set_fontproperties(prop)
-                for label in ax.get_xticklabels():
-                    label.set_fontproperties(prop)
-            st.pyplot(fig, use_container_width=True)
-        else:
-            st.info("工数 [h] がゼロのためグラフはありません。")
-
-    with col2:
-        st.markdown("#### 円グラフ")
-        if not pie_data.empty:
-            fig2, ax2 = plt.subplots(figsize=(4, 4))
-            labels = [str(idx) for idx in pie_data.index]
-            wedges, texts, autotexts = ax2.pie(
-                pie_data,
-                labels=labels,
-                autopct='%1.1f%%',
-                counterclock=False,
-                startangle=90,
-                textprops={'fontproperties': prop} if prop else None
-            )
-            if prop:
-                for text in texts + autotexts:
-                    text.set_fontproperties(prop)
-            ax2.set_ylabel("")
-            st.pyplot(fig2, use_container_width=True)
-        else:
-            st.info("工数 [h] がゼロのため円グラフはありません。")
-
-    # === 横並びで解析しやすいグラフ: 作業内容⇔担当者クロス分析 ===
-    st.subheader("作業内容・担当者ごと工数 [h] 横並びグラフ")
-
-    col_wc, col_staff = st.columns(2)
-
-    with col_wc:
-        st.markdown("#### 作業内容ごとの担当者別工数（横棒グラフ）")
-        selected_wc = st.selectbox("作業内容を選択してください", work_content_list, key="wc_bar")
-        df_wc = filtered[filtered["作業内容_分類"] == selected_wc]
-        bar_wc_data = df_wc.groupby("担当者")["工数 [h]"].sum().sort_values()
-        if not bar_wc_data.empty:
-            fig3, ax3 = plt.subplots(figsize=(6, 4))
-            bar_wc_data.plot.barh(ax=ax3, color="#e67e22")
-            if prop:
-                ax3.set_xlabel("工数 [h]", fontproperties=prop)
-                ax3.set_ylabel("担当者", fontproperties=prop)
-                for label in ax3.get_yticklabels():
-                    label.set_fontproperties(prop)
-                for label in ax3.get_xticklabels():
-                    label.set_fontproperties(prop)
-            st.pyplot(fig3, use_container_width=True)
-        else:
-            st.info("選択した作業内容のデータがありません。")
-
-    with col_staff:
-        st.markdown("#### 担当者ごとの作業内容別工数（横棒グラフ）")
-        staff_options = filtered["担当者"].dropna().unique()
-        if len(staff_options) > 0:
-            selected_staff = st.selectbox("担当者を選択してください", staff_options, key="staff_bar")
-            df_staff = filtered[filtered["担当者"] == selected_staff]
-            bar_staff_data = df_staff.groupby("作業内容_分類")["工数 [h]"].sum().reindex(work_content_list).fillna(0)
-            bar_staff_data = bar_staff_data[bar_staff_data > 0]
-            if not bar_staff_data.empty:
-                fig4, ax4 = plt.subplots(figsize=(6, 4))
-                bar_staff_data.plot.barh(ax=ax4, color="#4a90e2")
-                if prop:
-                    ax4.set_xlabel("工数 [h]", fontproperties=prop)
-                    ax4.set_ylabel("作業内容", fontproperties=prop)
-                    for label in ax4.get_yticklabels():
-                        label.set_fontproperties(prop)
-                    for label in ax4.get_xticklabels():
-                        label.set_fontproperties(prop)
-                st.pyplot(fig4, use_container_width=True)
-            else:
-                st.info("選択した担当者のデータがありません。")
+    # 凡例をfontproperties付きで
+    ax.legend(fontproperties=prop)
+    plt.xticks(rotation=45, ha="right", fontproperties=prop)
+    plt.yticks(fontproperties=prop)
+    plt.tight_layout()
+    st.pyplot(fig)
+else:
+    st.info("データをアップロードしてください。")
         else:
             st.info("担当者データがありません。")
 
