@@ -224,7 +224,3 @@ if not df_all.empty:
         st.info("担当者データがありません。")
 else:
     st.info("Upload Excel files or upload CSV to start.")
-            st.info("担当者データがありません。")
-
-else:
-    st.info("Upload Excel files or upload CSV to start.")
