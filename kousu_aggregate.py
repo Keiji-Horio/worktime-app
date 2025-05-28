@@ -8,7 +8,7 @@ import os
 import re
 import datetime
 
-# フォント自動検出（日本語フォントが確実に存在するものを複数候補に）
+# 日本語フォント自動検出
 font_path_candidates = [
     "C:/Windows/Fonts/meiryo.ttc",
     "C:/Windows/Fonts/YuGothM.ttc",
@@ -22,7 +22,6 @@ for p in font_path_candidates:
         break
 prop = fm.FontProperties(fname=font_path) if font_path else None
 
-# グローバルにmatplotlibの日本語フォントを設定
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
     plt.rcParams['axes.unicode_minus'] = False
@@ -203,26 +202,28 @@ if not df_all.empty:
         (df_all["作業内容_分類"].isin(selected_workcontent))
     ]
 
-    st.subheader("フィルタ後データ")
-    st.dataframe(filtered)
+    if not filtered.empty:
+        st.subheader("フィルタ後データ")
+        st.dataframe(filtered)
 
-    # ---- 棒グラフ表示 ----
-    st.subheader("作業内容ごとの工数合計（棒グラフ）")
-    plot_df = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reset_index()
-    plot_df = plot_df[plot_df["工数 [h]"] > 0]  # 0のものは除外
+        # ---- 棒グラフ表示 ----
+        st.subheader("作業内容ごとの工数合計（棒グラフ）")
+        plot_df = filtered.groupby("作業内容_分類")["工数 [h]"].sum().reset_index()
+        plot_df = plot_df[plot_df["工数 [h]"] > 0]  # 0のものは除外
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
+        fig, ax = plt.subplots(figsize=(10, 5))
+        bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
 
-    # 凡例をfontproperties付きで
-    ax.legend(fontproperties=prop)
-    plt.xticks(rotation=45, ha="right", fontproperties=prop)
-    plt.yticks(fontproperties=prop)
-    plt.tight_layout()
-    st.pyplot(fig)
+        # 凡例をfontproperties付きで
+        ax.legend(fontproperties=prop)
+        plt.xticks(rotation=45, ha="right", fontproperties=prop)
+        plt.yticks(fontproperties=prop)
+        plt.tight_layout()
+        st.pyplot(fig)
+    else:
+        st.info("担当者データがありません。")
 else:
-    st.info("データをアップロードしてください。")
-        else:
+    st.info("Upload Excel files or upload CSV to start.")
             st.info("担当者データがありません。")
 
 else:
