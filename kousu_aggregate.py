@@ -1,4 +1,6 @@
 import streamlit as st
+st.set_page_config(layout="wide")  # ← 必ずimport直後・最上行！
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
@@ -28,7 +30,6 @@ if prop:
 else:
     st.warning("日本語フォントが見つかりません。グラフ凡例に□が出る可能性があります。")
 
-st.set_page_config(layout="wide")
 st.title('工数集計・可視化アプリ')
 
 staff_to_branch = {
