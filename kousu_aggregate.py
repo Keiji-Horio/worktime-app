@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(layout="wide")  # ← 必ずimport直後・最上行！
+st.set_page_config(layout="wide")  # 必ず最初に！
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,13 +24,14 @@ for p in font_path_candidates:
         break
 prop = fm.FontProperties(fname=font_path) if font_path else None
 
+plt.rcParams['axes.unicode_minus'] = False
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
-    plt.rcParams['axes.unicode_minus'] = False
-else:
-    st.warning("日本語フォントが見つかりません。グラフ凡例に□が出る可能性があります。")
 
 st.title('工数集計・可視化アプリ')
+
+if not prop:
+    st.warning("日本語フォントが見つかりません。グラフ凡例に□が出る可能性があります。")
 
 staff_to_branch = {
     "a.kani":      "東京",
