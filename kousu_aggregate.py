@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(layout="wide")  # 必ずimport直後！何も前に書かない
+st.set_page_config(layout="wide")  # 必ずimport直後！
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ import os
 import re
 import datetime
 
-# --- フォント自動検出（ここではStreamlitのUI系コマンドは使わない） ---
+# --- フォント自動検出 ---
 font_path_candidates = [
     "C:/Windows/Fonts/meiryo.ttc",
     "C:/Windows/Fonts/YuGothM.ttc",
@@ -28,7 +28,6 @@ plt.rcParams['axes.unicode_minus'] = False
 if prop:
     plt.rcParams['font.family'] = prop.get_name()
 
-# --- StreamlitのUIコマンドはここから ---
 st.title('工数集計・可視化アプリ')
 
 if not prop:
@@ -217,10 +216,15 @@ if not df_all.empty:
         fig, ax = plt.subplots(figsize=(10, 5))
         bars = ax.bar(plot_df["作業内容_分類"], plot_df["工数 [h]"], label="工数 [h]")
 
-        # 凡例をfontproperties付きで
-        ax.legend(fontproperties=prop)
-        plt.xticks(rotation=45, ha="right", fontproperties=prop)
-        plt.yticks(fontproperties=prop)
+        # fontproperties=propはpropがNoneでないときのみ
+        if prop:
+            ax.legend(fontproperties=prop)
+            plt.xticks(rotation=45, ha="right", fontproperties=prop)
+            plt.yticks(fontproperties=prop)
+        else:
+            ax.legend()
+            plt.xticks(rotation=45, ha="right")
+            plt.yticks()
         plt.tight_layout()
         st.pyplot(fig)
     else:
